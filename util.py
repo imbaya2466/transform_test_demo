@@ -5,20 +5,23 @@ import torch
 
 # 注意力计算函数
 def attention(Q, K, V, mask):
-    # b句话,每句话50个词,每个词编码成32维向量,4个头,每个头分到8维向量
-    # Q,K,V = [b, 4, 50, 8]
+    # b句话,每句话50个词,每个词编码成32维向量,4个头,每个头分到8维向量 value就是8维向量   QKV的计算？
+    # Q,K,V = [b, 4, 50, 8] QKV都是这个格式
 
-    # [b, 4, 50, 8] * [b, 4, 8, 50] -> [b, 4, 50, 50]
+    # [b, 4, 50, 8] * [b, 4, 8, 50] -> [b, 4, 50, 50]   50*50表示每个词对其它词的注意力分数
     # Q,K矩阵相乘,求每个词相对其他所有词的注意力
     score = torch.matmul(Q, K.permute(0, 1, 3, 2))
+    # torch.matmul 在处理高维张量时，会对最后两个维度执行矩阵乘法，而其他维度则被视为批量维度
+    # permute 方法用于重新排列张量的维度。
 
-    # 除以每个头维数的平方根,做数值缩放
+
+    # 除以每个头键向量维数的平方根,做数值缩放 这样做的原因是为了防止点积在维度较高时变得过大。点积会随着维度的增加而增加，这可能导致 softmax 函数的输入在数值上变得非常大，从而导致梯度消失或爆炸的问题。
     score /= 8 ** 0.5
 
-    # mask遮盖,mask是true的地方都被替换成-inf,这样在计算softmax的时候,-inf会被压缩到0
+    # mask遮盖,mask是true的地方都被替换成-inf,这样在计算softmax的时候,-inf负无穷大会被压缩到0
     # mask = [b, 1, 50, 50]
     score = score.masked_fill_(mask, -float('inf'))
-    score = torch.softmax(score, dim=-1)
+    score = torch.softmax(score, dim=-1) # 在张量的最后一个维度执行
 
     # 以注意力分数乘以V,得到最终的注意力结果
     # [b, 4, 50, 50] * [b, 4, 50, 8] -> [b, 4, 50, 8]
@@ -26,7 +29,7 @@ def attention(Q, K, V, mask):
 
     # 每个头计算的结果合一
     # [b, 4, 50, 8] -> [b, 50, 32]
-    score = score.permute(0, 2, 1, 3).reshape(-1, 50, 32)
+    score = score.permute(0, 2, 1, 3).reshape(-1, 50, 32) # reshape改变张量的形状而不改变其数据，最后一层直接铺成32
 
     return score
 
@@ -42,8 +45,8 @@ class MultiHead(torch.nn.Module):
         self.out_fc = torch.nn.Linear(32, 32)
 
         # 规范化之后,均值是0,标准差是1
-        # BN是取不同样本做归一化
-        # LN是取不同通道做归一化
+        # BN是取不同样本做归一化 单一通道   这个没有非常理解，再看看
+        # LN是取不同通道做归一化 单一样本
         # affine=True,elementwise_affine=True,指定规范化后,再计算一个线性映射
         # norm = torch.nn.BatchNorm1d(num_features=4, affine=True)
         # print(norm(torch.arange(32, dtype=torch.float32).reshape(2, 4, 4)))
@@ -72,8 +75,11 @@ class MultiHead(torch.nn.Module):
          [-1.3416, -0.4472,  0.4472,  1.3416]]]"""
 
         self.norm = torch.nn.LayerNorm(normalized_shape=32, elementwise_affine=True)
+        # 单个样本内归一化 normalized_shape: 输入特征的形状，这个参数指定了要进行归一化的维度 
+        # elementwise_affine是否加上可学习的线性变化
 
         self.dropout = torch.nn.Dropout(p=0.1)
+        #随机丢弃神经元，p为概率
 
     def forward(self, Q, K, V, mask):
         # b句话,每句话50个词,每个词编码成32维向量
@@ -109,7 +115,7 @@ class MultiHead(torch.nn.Module):
         # [b, 50, 32] -> [b, 50, 32]
         score = self.dropout(self.out_fc(score))
 
-        # 短接
+        # 短接 残差连接-用于嵌套扩展模型规模
         score = clone_Q + score
         return score
 
