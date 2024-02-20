@@ -64,7 +64,7 @@ def get_data():
     x = x[:50]
     y = y[:51]
 
-    # 编码成数据
+    # 编码成数据，就是索引编号
     x = [zidian_x[i] for i in x]
     y = [zidian_y[i] for i in y]
 
@@ -137,8 +137,8 @@ class Dataset(torch.utils.data.Dataset):
 
 
 # 数据加载器
-loader = torch.utils.data.DataLoader(dataset=Dataset(),
-                                     batch_size=8,
-                                     drop_last=True,
-                                     shuffle=True,
-                                     collate_fn=None)
+loader = torch.utils.data.DataLoader(dataset=Dataset(), # 数据集
+                                     batch_size=8,      # 批处理大小
+                                     drop_last=True,    # 数据量不能被批处理整除时是否丢弃最后的部分
+                                     shuffle=True,      # 每个训练周期epoch是否打乱顺序
+                                     collate_fn=None)   # 指定一个自定义的函数来决定如何将多个数据项合并成一个批次

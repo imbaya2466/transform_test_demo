@@ -139,23 +139,23 @@ class PositionEmbedding(torch.nn.Module):
         for i in range(50):
             for j in range(32):
                 pe[i, j] = get_pe(i, j, 32)
-        pe = pe.unsqueeze(0)
+        pe = pe.unsqueeze(0)  # 增加纬度
 
-        # 定义为不更新的常量
+        # 定义为不更新的常量  注册该参数为模型固有常量
         self.register_buffer('pe', pe)
 
-        # 词编码层
+        # 词编码层  Embedding层被用来学习一个从离散的词标识符（比如单词索引）到连续向量空间中的高维表示的映射。
         self.embed = torch.nn.Embedding(39, 32)
-        # 初始化参数
+        # 初始化参数  初始化Embedding层的训练参数。均值，标准差
         self.embed.weight.data.normal_(0, 0.1)
 
     def forward(self, x):
         # [8, 50] -> [8, 50, 32]
-        embed = self.embed(x)
+        embed = self.embed(x)  #index到32纬度的连续向量
 
         # 词编码和位置编码相加
         # [8, 50, 32] + [1, 50, 32] -> [8, 50, 32]
-        embed = embed + self.pe
+        embed = embed + self.pe  # 广播[1, 50, 32]会复制成8层后相加
         return embed
 
 
