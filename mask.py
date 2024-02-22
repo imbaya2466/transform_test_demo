@@ -37,7 +37,7 @@ def mask_tril(data):
      [0, 0, 0, 1, 1],
      [0, 0, 0, 0, 1],
      [0, 0, 0, 0, 0]]"""
-    tril = 1 - torch.tril(torch.ones(1, 50, 50, dtype=torch.long))
+    tril = 1 - torch.tril(torch.ones(1, 50, 50, dtype=torch.long)) #tril默认上三角置0
 
     # 判断y当中每个词是不是pad,如果是pad则不可见
     # [b, 50]
@@ -45,14 +45,14 @@ def mask_tril(data):
 
     # 变形+转型,为了之后的计算
     # [b, 1, 50]
-    mask = mask.unsqueeze(1).long()
+    mask = mask.unsqueeze(1).long() # unsqueeze扩展
 
     # mask和tril求并集
     # [b, 1, 50] + [1, 50, 50] -> [b, 50, 50]
-    mask = mask + tril
+    mask = mask + tril #元素求和
 
     # 转布尔型
-    mask = mask > 0
+    mask = mask > 0 
 
     # 转布尔型,增加一个维度,便于后续的计算
     mask = (mask == 1).unsqueeze(dim=1)

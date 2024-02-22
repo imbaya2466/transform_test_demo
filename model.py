@@ -13,7 +13,7 @@ class EncoderLayer(torch.nn.Module):
 
     def forward(self, x, mask):
         # 计算自注意力,维度不变
-        # [b, 50, 32] -> [b, 50, 32]
+        # [b, 50, 32] -> [b, 50, 32] 自己的值就是qkv源
         score = self.mh(x, x, x, mask)
 
         # 全连接输出,维度不变
@@ -50,7 +50,7 @@ class DecoderLayer(torch.nn.Module):
     def forward(self, x, y, mask_pad_x, mask_tril_y):
         # 先计算y的自注意力,维度不变
         # [b, 50, 32] -> [b, 50, 32]
-        y = self.mh1(y, y, y, mask_tril_y)
+        y = self.mh1(y, y, y, mask_tril_y) #由于mask_tril_y的存在，这里返回的每个词的注意力结果只能是它和前面词计算而来的注意力结果
 
         # 结合x和y的注意力计算,维度不变
         # [b, 50, 32],[b, 50, 32] -> [b, 50, 32]
@@ -106,7 +106,7 @@ class Transformer(torch.nn.Module):
         # [b, 50, 32],[b, 50, 32] -> [b, 50, 32]
         y = self.decoder(x, y, mask_pad_x, mask_tril_y)
 
-        # 全连接输出,维度不变
+        # 全连接输出,维度改变
         # [b, 50, 32] -> [b, 50, 39]
         y = self.fc_out(y)
 

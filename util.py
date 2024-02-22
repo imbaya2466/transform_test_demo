@@ -31,7 +31,7 @@ def attention(Q, K, V, mask):
     # [b, 4, 50, 8] -> [b, 50, 32]
     score = score.permute(0, 2, 1, 3).reshape(-1, 50, 32) # reshape改变张量的形状而不改变其数据，最后一层直接铺成32
 
-    return score
+    return score # 返回每个词对全部的查询结果
 
 
 # 多头注意力计算层
@@ -109,7 +109,7 @@ class MultiHead(torch.nn.Module):
 
         # 计算注意力
         # [b, 4, 50, 8] -> [b, 50, 32]
-        score = attention(Q, K, V, mask)
+        score = attention(Q, K, V, mask)  # Q是目标，KV是查询数据库，K代表关键词，Q才是需要的，所以短接Q
 
         # 计算输出,维度不变
         # [b, 50, 32] -> [b, 50, 32]
